@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14 frontend --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npm install *)",
+      "Bash(npm config *)",
+      "Bash(npm --cache /tmp/npm-cache install @supabase/supabase-js @supabase/ssr lucide-react)",
+      "Bash(curl -s \"https://pypi.org/pypi/fastapi/0.111.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('fastapi 0.111.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/uvicorn/0.29.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('uvicorn 0.29.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/anthropic/0.28.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('anthropic 0.28.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/supabase/2.4.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('supabase 2.4.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/openai/1.30.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('openai 1.30.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/httpx/0.27.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('httpx 0.27.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/python-dotenv/1.0.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('python-dotenv 1.0.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(curl -s \"https://pypi.org/pypi/python-docx/1.1.0/json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('python-docx 1.1.0 requires:', d['info']['requires_python']\\)\")",
+      "Bash(node -e \"const l = require\\('/Users/giuseppedenicastro/knowledge-app/frontend/node_modules/lucide-react'\\); console.log\\('MessagesSquare' in l\\)\")",
+      "Bash(node -e \"const l = require\\('./node_modules/lucide-react'\\); console.log\\('MessagesSquare:', 'MessagesSquare' in l\\); console.log\\('MessageSquare:', 'MessageSquare' in l\\);\")",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
