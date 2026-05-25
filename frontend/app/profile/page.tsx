@@ -14,7 +14,7 @@ export default async function ProfilePage() {
     .eq('user_id', user.id)
     .single()
 
-  const orgName = (membership?.organizations as { name: string } | null)?.name ?? '—'
+  const orgName = (membership?.organizations as unknown as { name: string } | null)?.name ?? '—'
 
   return (
     <div className="p-8 max-w-xl mx-auto">

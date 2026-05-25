@@ -1,18 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { setupOrg } from '@/lib/api'
 import { Building2 } from 'lucide-react'
 
-export default function CreateOrgPrompt({ userId }: { userId: string }) {
+export default function CreateOrgPrompt() {
   // Start in 'pending' — we check localStorage before deciding what to show.
   // This prevents a flash of the manual form when a pendingFirmName exists.
   const [mode, setMode] = useState<'pending' | 'auto' | 'form'>('pending')
   const [firmName, setFirmName] = useState('')
   const [error, setError] = useState('')
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {

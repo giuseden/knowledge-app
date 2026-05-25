@@ -83,7 +83,7 @@ export default async function DashboardPage() {
   const data = await getOrgData(user.id, supabase)
 
   if (!data) {
-    return <CreateOrgPrompt userId={user.id} />
+    return <CreateOrgPrompt />
   }
 
   const stats = [
