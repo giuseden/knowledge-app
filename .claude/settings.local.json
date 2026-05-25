@@ -23,7 +23,8 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('python-docx 1.1.0 requires:', d['info']['requires_python']\\)\")",
       "Bash(node -e \"const l = require\\('/Users/giuseppedenicastro/knowledge-app/frontend/node_modules/lucide-react'\\); console.log\\('MessagesSquare' in l\\)\")",
       "Bash(node -e \"const l = require\\('./node_modules/lucide-react'\\); console.log\\('MessagesSquare:', 'MessagesSquare' in l\\); console.log\\('MessageSquare:', 'MessageSquare' in l\\);\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(xargs ls -la)"
     ]
   }
 }
