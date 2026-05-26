@@ -35,7 +35,7 @@ export default function CreateOrgPrompt() {
       localStorage.removeItem('pendingFirmName')
       window.location.href = '/dashboard'
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create organization')
+      setError(err instanceof Error ? err.message : 'Impossibile creare l\'organizzazione')
       setFirmName(name)   // pre-fill the form with the name we already have
       setMode('form')
     }
@@ -47,7 +47,7 @@ export default function CreateOrgPrompt() {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      setError('No active session — please log out and log back in.')
+      setError('Sessione non attiva — effettua il logout e accedi di nuovo.')
       return
     }
     try {
@@ -55,7 +55,7 @@ export default function CreateOrgPrompt() {
       localStorage.removeItem('pendingFirmName')
       window.location.href = '/dashboard'
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create organization')
+      setError(err instanceof Error ? err.message : 'Impossibile creare l\'organizzazione')
     }
   }
 
@@ -88,9 +88,9 @@ export default function CreateOrgPrompt() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4">
             <Building2 className="w-7 h-7 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Set up your organization</h2>
+          <h2 className="text-xl font-bold text-gray-900">Configura la tua organizzazione</h2>
           <p className="text-gray-500 mt-1 text-sm">
-            Your account isn&apos;t linked to a firm yet. Create one to continue.
+            Il tuo account non è ancora collegato a uno studio. Creane uno per continuare.
           </p>
         </div>
 
@@ -98,14 +98,14 @@ export default function CreateOrgPrompt() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Firm name
+                Nome dello studio
               </label>
               <input
                 type="text"
                 value={firmName}
                 onChange={(e) => setFirmName(e.target.value)}
                 className="input"
-                placeholder="Acme Law Firm"
+                placeholder="Studio Legale Rossi"
                 required
               />
             </div>
@@ -117,7 +117,7 @@ export default function CreateOrgPrompt() {
             )}
 
             <button type="submit" className="btn-primary w-full">
-              Create organization
+              Crea organizzazione
             </button>
           </form>
         </div>

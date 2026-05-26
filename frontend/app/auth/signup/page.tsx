@@ -31,7 +31,7 @@ export default function SignupPage() {
     })
 
     if (authError || !authData.user) {
-      setError(authError?.message ?? 'Signup failed')
+      setError(authError?.message ?? 'Registrazione fallita')
       setLoading(false)
       return
     }
@@ -41,7 +41,7 @@ export default function SignupPage() {
       try {
         await setupOrg(firmName, authData.session.access_token)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create organization')
+        setError(err instanceof Error ? err.message : 'Impossibile creare l\'organizzazione')
         setLoading(false)
         return
       }
@@ -82,36 +82,36 @@ export default function SignupPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4">
             <Building2 className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Register your firm</h1>
-          <p className="text-gray-500 mt-1 text-sm">Start building your AI knowledge base</p>
+          <h1 className="text-2xl font-bold text-gray-900">Registra il tuo studio</h1>
+          <p className="text-gray-500 mt-1 text-sm">Inizia a costruire la tua knowledge base AI</p>
         </div>
 
         <div className="card p-8">
           <form onSubmit={handleSignup} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Firm name
+                Nome dello studio
               </label>
               <input
                 type="text"
                 value={firmName}
                 onChange={(e) => setFirmName(e.target.value)}
                 className="input"
-                placeholder="Acme Law Firm"
+                placeholder="Studio Legale Rossi"
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+                Indirizzo email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="you@firm.com"
+                placeholder="tu@studio.com"
                 required
               />
             </div>
@@ -125,7 +125,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
-                placeholder="Min. 8 characters"
+                placeholder="Min. 8 caratteri"
                 minLength={8}
                 required
               />
@@ -138,15 +138,15 @@ export default function SignupPage() {
             )}
 
             <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? 'Creazione in corso…' : 'Crea account'}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Already have an account?{' '}
+          Hai già un account?{' '}
           <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
-            Sign in
+            Accedi
           </Link>
         </p>
       </div>

@@ -71,7 +71,15 @@ const statusIcon = (status: string) => {
 const sourceLabel: Record<string, string> = {
   audio: 'Audio',
   video: 'Video',
-  document: 'Document',
+  document: 'Documento',
+  spreadsheet: 'Foglio Excel',
+}
+
+const statusLabel: Record<string, string> = {
+  ready: 'Pronto',
+  processing: 'Elaborazione',
+  error: 'Errore',
+  pending: 'In attesa',
 }
 
 export default async function DashboardPage() {
@@ -88,19 +96,19 @@ export default async function DashboardPage() {
 
   const stats = [
     {
-      label: 'Total Documents',
+      label: 'Documenti totali',
       value: data.totalDocs,
       icon: FileText,
       color: 'text-indigo-600 bg-indigo-50',
     },
     {
-      label: 'Ready',
+      label: 'Pronti',
       value: data.readyDocs,
       icon: CheckCircle,
       color: 'text-green-600 bg-green-50',
     },
     {
-      label: 'Processing',
+      label: 'In elaborazione',
       value: data.processingDocs,
       icon: Clock,
       color: 'text-amber-600 bg-amber-50',
@@ -113,7 +121,7 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           {(data.org as { name: string } | null)?.name ?? 'Your Firm'}
         </h1>
-        <p className="text-gray-500 mt-1">Knowledge base overview</p>
+        <p className="text-gray-500 mt-1">Panoramica della knowledge base</p>
       </div>
 
       {/* Stats */}
@@ -134,12 +142,12 @@ export default async function DashboardPage() {
       {/* Recent documents */}
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-900">Recent Documents</h2>
+          <h2 className="text-base font-semibold text-gray-900">Documenti recenti</h2>
         </div>
         {data.recentDocs.length === 0 ? (
           <div className="p-8 text-center text-gray-400">
             <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No documents yet. Upload your first file.</p>
+            <p className="text-sm">Nessun documento. Carica il tuo primo file.</p>
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -148,11 +156,11 @@ export default async function DashboardPage() {
                 {statusIcon(doc.status)}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {doc.title ?? 'Untitled'}
+                    {doc.title ?? 'Senza titolo'}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {sourceLabel[doc.source_type ?? ''] ?? doc.source_type} ·{' '}
-                    {new Date(doc.created_at).toLocaleDateString()}
+                    {new Date(doc.created_at).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -162,7 +170,7 @@ export default async function DashboardPage() {
                     ? 'bg-amber-50 text-amber-700'
                     : 'bg-red-50 text-red-700'
                 }`}>
-                  {doc.status}
+                  {statusLabel[doc.status] ?? doc.status}
                 </span>
               </li>
             ))}

@@ -166,7 +166,7 @@ export default function UploadPage() {
     setErrorMsg('')
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setState('error'); setErrorMsg('Not authenticated'); return }
+    if (!user) { setState('error'); setErrorMsg('Utente non autenticato'); return }
 
     const { data: membership } = await supabase
       .from('organization_members')
@@ -174,7 +174,7 @@ export default function UploadPage() {
       .eq('user_id', user.id)
       .single()
 
-    if (!membership) { setState('error'); setErrorMsg('No organization found'); return }
+    if (!membership) { setState('error'); setErrorMsg('Nessuna organizzazione trovata'); return }
 
     const orgId = membership.organization_id
     const ext = file.name.split('.').pop()
@@ -199,7 +199,7 @@ export default function UploadPage() {
       .select('id')
       .single()
 
-    if (docError || !doc) { setState('error'); setErrorMsg('Failed to create document record'); return }
+    if (docError || !doc) { setState('error'); setErrorMsg('Impossibile creare il documento'); return }
 
     setState('processing')
 

@@ -15,7 +15,7 @@ import {
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/upload', label: 'Upload', icon: Upload },
+  { href: '/upload', label: 'Carica', icon: Upload },
   { href: '/documents', label: 'Trascrizioni', icon: FileText },
   { href: '/chat', label: 'AI Chat', icon: MessageSquare },
   { href: '/profile', label: 'Profilo', icon: UserCircle },
@@ -67,7 +67,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
         >
           <LogOut className="w-4 h-4" />
-          Sign Out
+          Esci
         </button>
       </div>
     </aside>

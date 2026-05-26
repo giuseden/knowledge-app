@@ -23,10 +23,10 @@ type Doc = {
 
 const statusBadge = (status: string) => {
   const map: Record<string, { cls: string; label: string; icon: React.ReactNode }> = {
-    ready:      { cls: 'bg-green-50 text-green-700',  label: 'Ready',      icon: <CheckCircle className="w-3.5 h-3.5" /> },
-    processing: { cls: 'bg-amber-50 text-amber-700',  label: 'Processing', icon: <Clock className="w-3.5 h-3.5" /> },
-    pending:    { cls: 'bg-gray-100 text-gray-600',   label: 'Pending',    icon: <Clock className="w-3.5 h-3.5" /> },
-    error:      { cls: 'bg-red-50 text-red-700',      label: 'Error',      icon: <AlertCircle className="w-3.5 h-3.5" /> },
+    ready:      { cls: 'bg-green-50 text-green-700',  label: 'Pronto',      icon: <CheckCircle className="w-3.5 h-3.5" /> },
+    processing: { cls: 'bg-amber-50 text-amber-700',  label: 'Elaborazione', icon: <Clock className="w-3.5 h-3.5" /> },
+    pending:    { cls: 'bg-gray-100 text-gray-600',   label: 'In attesa',    icon: <Clock className="w-3.5 h-3.5" /> },
+    error:      { cls: 'bg-red-50 text-red-700',      label: 'Errore',      icon: <AlertCircle className="w-3.5 h-3.5" /> },
   }
   const { cls, label, icon } = map[status] ?? map.pending
   return (
@@ -157,7 +157,7 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
                           />
                         ) : (
                           <>
-                            <p className="font-medium text-gray-900">{doc.title ?? 'Untitled'}</p>
+                            <p className="font-medium text-gray-900">{doc.title ?? 'Senza titolo'}</p>
                             {doc.transcript && !isExpanded && (
                               <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">
                                 {doc.transcript.substring(0, 80)}…

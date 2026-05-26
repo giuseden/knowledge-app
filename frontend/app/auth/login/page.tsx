@@ -41,22 +41,22 @@ function LoginContent() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4">
             <Building2 className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-1 text-sm">Sign in to your firm&apos;s knowledge base</p>
+          <h1 className="text-2xl font-bold text-gray-900">Bentornato</h1>
+          <p className="text-gray-500 mt-1 text-sm">Accedi alla knowledge base del tuo studio</p>
         </div>
 
         <div className="card p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+                Indirizzo email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="you@firm.com"
+                placeholder="tu@studio.com"
                 required
               />
             </div>
@@ -102,15 +102,15 @@ function LoginContent() {
             )}
 
             <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Accesso in corso…' : 'Accedi'}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don&apos;t have an account?{' '}
+          Non hai un account?{' '}
           <Link href="/auth/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
-            Register your firm
+            Registra il tuo studio
           </Link>
         </p>
       </div>
