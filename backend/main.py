@@ -32,6 +32,50 @@ sb: Client = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERV
 CHUNK_WORDS = 400
 OVERLAP_WORDS = 50
 
+INFOGRAPHIC_KEYWORDS = [
+    "infografica", "infographic", "visualizza", "schema",
+    "mappa", "diagramma", "grafico", "rappresenta",
+]
+
+
+def detect_infographic_request(message: str) -> bool:
+    lower = message.lower()
+    return any(kw in lower for kw in INFOGRAPHIC_KEYWORDS)
+
+
+def extract_infographic_data(context: str) -> dict | None:
+    try:
+        prompt = (
+            "Analyze the following text and extract its structure as JSON. "
+            "Return ONLY valid JSON (no markdown, no code blocks, no explanation) with this exact format:\n"
+            '{"type":"steps","title":"...","items":[{"label":"...","description":"...","icon":"emoji"}]}\n\n'
+            "Rules:\n"
+            "- type must be exactly one of: steps, categories, timeline, keypoints\n"
+            "- Use 'steps' for sequential processes or procedures\n"
+            "- Use 'categories' for grouped topics, themes, or comparisons\n"
+            "- Use 'timeline' for chronological events\n"
+            "- Use 'keypoints' for key facts, stats, or highlights\n"
+            "- icon must be a single relevant emoji\n"
+            "- Include 3 to 6 items\n"
+            "- Write labels and descriptions in Italian\n\n"
+            f"Text:\n{context[:3000]}"
+        )
+        response = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=800,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.content[0].text.strip()
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        return json.loads(text)
+    except Exception as exc:
+        print(f"Infographic extraction failed: {exc}")
+        return None
+
 
 class SetupOrgRequest(BaseModel):
     firm_name: str
@@ -288,6 +332,8 @@ def chat(req: ChatRequest, authorization: str = Header(...)):
     messages = [{"role": m.role, "content": m.content} for m in req.history]
     messages.append({"role": "user", "content": req.message})
 
+    is_infographic = detect_infographic_request(req.message)
+
     def generate():
         with anthropic_client.messages.stream(
             model="claude-sonnet-4-6",
@@ -298,6 +344,11 @@ def chat(req: ChatRequest, authorization: str = Header(...)):
             for text in stream.text_stream:
                 yield f"data: {json.dumps({'delta': text})}\n\n"
         yield f"data: {json.dumps({'done': True, 'sources': sources})}\n\n"
+
+        if is_infographic and context:
+            infographic_data = extract_infographic_data(context)
+            if infographic_data:
+                yield f"data: {json.dumps({'infographic': infographic_data})}\n\n"
 
     return StreamingResponse(
         generate(),

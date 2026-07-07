@@ -8,6 +8,7 @@ import {
   Send, Bot, User, Loader2, MessageSquare,
   Plus, Trash2, MessagesSquare,
 } from 'lucide-react'
+import InfographicRenderer, { type InfographicData } from '@/components/InfographicRenderer'
 
 const mdComponents = {
   p: ({ children }: React.ComponentPropsWithoutRef<'p'>) => (
@@ -87,6 +88,7 @@ type Message = {
   role: 'user' | 'assistant'
   content: string
   sources?: { document_id: string; content: string }[]
+  infographic?: InfographicData
 }
 
 type ChatSession = {
@@ -290,6 +292,14 @@ export default function ChatPage() {
                 ),
               }))
             }
+            if (data.infographic) {
+              updateSession(capturedActiveId, (s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsgId ? { ...m, infographic: data.infographic } : m
+                ),
+              }))
+            }
           } catch {
             // skip malformed SSE line
           }
@@ -426,6 +436,9 @@ export default function ChatPage() {
                     <span className="inline-block w-1.5 h-4 bg-indigo-400 animate-pulse rounded-sm" />
                   )}
                 </div>
+                {msg.infographic && (
+                  <InfographicRenderer data={msg.infographic} />
+                )}
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-2 space-y-1">
                     <p className="text-xs text-gray-400 font-medium">Fonti:</p>
