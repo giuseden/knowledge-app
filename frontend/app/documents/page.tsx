@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import DocumentsClient from './DocumentsClient'
 
 export default async function DocumentsPage() {
@@ -49,20 +49,11 @@ export default async function DocumentsPage() {
         </Link>
       </div>
 
-      {!documents || documents.length === 0 ? (
-        <div className="card p-16 text-center">
-          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium">Nessun documento</p>
-          <p className="text-gray-400 text-sm mt-1">Carica file audio, video o testo per iniziare</p>
-          <Link href="/upload" className="btn-primary inline-flex mt-4">Carica il tuo primo file</Link>
-        </div>
-      ) : (
-        <DocumentsClient
-          documents={documents}
-          folders={folders}
-          organizationId={organizationId}
-        />
-      )}
+      <DocumentsClient
+        documents={documents}
+        folders={folders}
+        organizationId={organizationId}
+      />
     </div>
   )
 }
