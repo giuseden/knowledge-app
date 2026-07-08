@@ -53,7 +53,7 @@ export default function DocumentsClient({ documents: initialDocs, folders: initi
   }, [organizationId, getToken])
 
   const handleCreateFolder = useCallback(async (name: string, type: 'knowledge' | 'reference') => {
-    if (!organizationId) return
+    if (!organizationId) throw new Error('Nessuna organizzazione trovata')
     const token = await getToken()
     await createFolder(organizationId, name, type, token)
     await refreshFolders()

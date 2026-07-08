@@ -44,6 +44,8 @@ export default function FolderSidebar({
       await onCreateFolder(newFolderName.trim(), creatingFor)
       setNewFolderName('')
       setCreatingFor(null)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Errore nella creazione della cartella')
     } finally {
       setLoading(false)
     }
@@ -55,6 +57,8 @@ export default function FolderSidebar({
     try {
       await onRenameFolder(id, renameValue.trim())
       setRenamingId(null)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Errore nel rinominare la cartella')
     } finally {
       setLoading(false)
     }
@@ -65,6 +69,8 @@ export default function FolderSidebar({
     setLoading(true)
     try {
       await onDeleteFolder(id)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Errore nell'eliminazione della cartella")
     } finally {
       setLoading(false)
     }
