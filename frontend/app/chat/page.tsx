@@ -9,6 +9,7 @@ import {
   Plus, Trash2, MessagesSquare,
 } from 'lucide-react'
 import InfographicRenderer, { type InfographicData } from '@/components/InfographicRenderer'
+import LaborCostCard, { type LaborCostData } from '@/components/LaborCostCard'
 
 const mdComponents = {
   p: ({ children }: React.ComponentPropsWithoutRef<'p'>) => (
@@ -89,6 +90,7 @@ type Message = {
   content: string
   sources?: { document_id: string; content: string }[]
   infographic?: InfographicData
+  laborCost?: LaborCostData
 }
 
 type ChatSession = {
@@ -300,6 +302,14 @@ export default function ChatPage() {
                 ),
               }))
             }
+            if (data.labor_cost) {
+              updateSession(capturedActiveId, (s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsgId ? { ...m, laborCost: data.labor_cost } : m
+                ),
+              }))
+            }
           } catch {
             // skip malformed SSE line
           }
@@ -438,6 +448,9 @@ export default function ChatPage() {
                 </div>
                 {msg.infographic && (
                   <InfographicRenderer data={msg.infographic} />
+                )}
+                {msg.laborCost && (
+                  <LaborCostCard data={msg.laborCost} />
                 )}
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-2 space-y-1">

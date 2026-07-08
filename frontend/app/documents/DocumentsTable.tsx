@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import {
   FileText, Clock, CheckCircle, AlertCircle,
   ChevronDown, ChevronUp, Pencil, Check, X, Loader2,
+  FolderInput,
 } from 'lucide-react'
 import DeleteDocButton from './DeleteDocButton'
 import SpreadsheetEditor from './SpreadsheetEditor'
 import { createClient } from '@/lib/supabase/client'
-import { reEmbed } from '@/lib/api'
+import { reEmbed, moveDocument, type Folder } from '@/lib/api'
 
 type Doc = {
   id: string
@@ -19,14 +20,22 @@ type Doc = {
   created_at: string
   transcript: string | null
   organization_id: string
+  folder_id: string | null
+  document_type: string
+}
+
+type Props = {
+  documents: Doc[]
+  folders: Folder[]
+  organizationId: string | null
 }
 
 const statusBadge = (status: string) => {
   const map: Record<string, { cls: string; label: string; icon: React.ReactNode }> = {
-    ready:      { cls: 'bg-green-50 text-green-700',  label: 'Pronto',      icon: <CheckCircle className="w-3.5 h-3.5" /> },
+    ready:      { cls: 'bg-green-50 text-green-700',  label: 'Pronto',       icon: <CheckCircle className="w-3.5 h-3.5" /> },
     processing: { cls: 'bg-amber-50 text-amber-700',  label: 'Elaborazione', icon: <Clock className="w-3.5 h-3.5" /> },
     pending:    { cls: 'bg-gray-100 text-gray-600',   label: 'In attesa',    icon: <Clock className="w-3.5 h-3.5" /> },
-    error:      { cls: 'bg-red-50 text-red-700',      label: 'Errore',      icon: <AlertCircle className="w-3.5 h-3.5" /> },
+    error:      { cls: 'bg-red-50 text-red-700',      label: 'Errore',       icon: <AlertCircle className="w-3.5 h-3.5" /> },
   }
   const { cls, label, icon } = map[status] ?? map.pending
   return (
@@ -50,16 +59,23 @@ const sourceLabel: Record<string, string> = {
   spreadsheet: 'Excel',
 }
 
-export default function DocumentsTable({ documents: initialDocs }: { documents: Doc[] }) {
+export default function DocumentsTable({ documents: initialDocs, folders, organizationId }: Props) {
   const [docs, setDocs] = useState(initialDocs)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editTranscriptId, setEditTranscriptId] = useState<string | null>(null)
   const [editTranscript, setEditTranscript] = useState('')
+  const [movingDocId, setMovingDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Not authenticated')
+    return session.access_token
+  }
 
   const toggle = (id: string, hasTranscript: boolean) => {
     if (editingId) return
@@ -101,9 +117,8 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
   const saveTranscript = async (doc: Doc) => {
     setSaving(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
-      await reEmbed(doc.id, doc.organization_id, editTranscript, session.access_token)
+      const token = await getToken()
+      await reEmbed(doc.id, doc.organization_id, editTranscript, token)
       setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, transcript: editTranscript } : d))
       setEditTranscriptId(null)
       router.refresh()
@@ -113,6 +128,25 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
       setSaving(false)
     }
   }
+
+  const handleMoveDoc = async (docId: string, folderId: string | null) => {
+    setSaving(true)
+    try {
+      const token = await getToken()
+      await moveDocument(docId, folderId, token)
+      setDocs((prev) => prev.map((d) => d.id === docId ? { ...d, folder_id: folderId } : d))
+      setMovingDocId(null)
+      router.refresh()
+    } catch {
+      alert('Errore nello spostamento. Riprova.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Cartelle dello stesso document_type del documento corrente
+  const foldersForDoc = (doc: Doc) =>
+    folders.filter((f) => f.document_type === doc.document_type)
 
   return (
     <div className="card overflow-hidden">
@@ -132,6 +166,11 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
             const isExpanded = expanded === doc.id
             const isEditingTitle = editingId === doc.id
             const isEditingTranscript = editTranscriptId === doc.id
+            const isMoving = movingDocId === doc.id
+            const availableFolders = foldersForDoc(doc)
+            const currentFolderName = doc.folder_id
+              ? folders.find((f) => f.id === doc.folder_id)?.name
+              : null
 
             return (
               <React.Fragment key={doc.id}>
@@ -158,11 +197,18 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
                         ) : (
                           <>
                             <p className="font-medium text-gray-900">{doc.title ?? 'Senza titolo'}</p>
-                            {doc.transcript && !isExpanded && (
-                              <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">
-                                {doc.transcript.substring(0, 80)}…
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {currentFolderName && (
+                                <span className="text-xs text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                  📁 {currentFolderName}
+                                </span>
+                              )}
+                              {doc.transcript && !isExpanded && (
+                                <p className="text-xs text-gray-400 truncate max-w-xs">
+                                  {doc.transcript.substring(0, 80)}…
+                                </p>
+                              )}
+                            </div>
                           </>
                         )}
                       </div>
@@ -197,6 +243,42 @@ export default function DocumentsTable({ documents: initialDocs }: { documents: 
                         </>
                       ) : (
                         <>
+                          {/* Sposta in cartella */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setMovingDocId(isMoving ? null : doc.id)}
+                              className="text-gray-400 hover:text-indigo-500 transition-colors"
+                              title="Sposta in cartella"
+                            >
+                              <FolderInput className="w-4 h-4" />
+                            </button>
+
+                            {isMoving && (
+                              <div className="absolute right-0 top-6 z-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]">
+                                <p className="px-3 py-1 text-xs text-gray-400 font-semibold uppercase">Sposta in</p>
+                                {/* Radice */}
+                                <button
+                                  onClick={() => handleMoveDoc(doc.id, null)}
+                                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${!doc.folder_id ? 'text-indigo-600 font-medium' : 'text-gray-700'}`}
+                                >
+                                  — Nessuna cartella
+                                </button>
+                                {availableFolders.map((f) => (
+                                  <button
+                                    key={f.id}
+                                    onClick={() => handleMoveDoc(doc.id, f.id)}
+                                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 ${doc.folder_id === f.id ? 'text-indigo-600 font-medium' : 'text-gray-700'}`}
+                                  >
+                                    <span>📁</span> {f.name}
+                                  </button>
+                                ))}
+                                {availableFolders.length === 0 && (
+                                  <p className="px-3 py-1.5 text-xs text-gray-400">Nessuna cartella disponibile</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
                           {hasTranscript && (
                             isExpanded
                               ? <ChevronUp className="w-4 h-4 text-gray-400" />

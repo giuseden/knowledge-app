@@ -3,10 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, File as FileGeneric, FileText, FileSpreadsheet, X, CheckCircle, Loader2, ChevronDown, Mic, StopCircle } from 'lucide-react'
+import { Upload, File as FileGeneric, FileText, FileSpreadsheet, X, CheckCircle, Loader2, ChevronDown, Mic, StopCircle, BookOpen, FileStack, Folder } from 'lucide-react'
+import { listFolders, type Folder as FolderType } from '@/lib/api'
 
 type UploadState = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
 type Mode = 'file' | 'record'
+type DocType = 'knowledge' | 'reference'
 
 const AUDIO_TYPES = [
   'audio/mpeg',
@@ -66,6 +68,9 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
+  const [docType, setDocType] = useState<DocType>('knowledge')
+  const [folderId, setFolderId] = useState<string>('')
+  const [folders, setFolders] = useState<FolderType[]>([])
   const [state, setState] = useState<UploadState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -79,12 +84,38 @@ export default function UploadPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Carica le cartelle all'avvio
+  useEffect(() => {
+    const loadFolders = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const { data: membership } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', session.user.id)
+          .single()
+        if (!membership) return
+        const result = await listFolders(membership.organization_id, session.access_token)
+        setFolders(result)
+      } catch {
+        // silently ignore
+      }
+    }
+    loadFolders()
+  }, [supabase])
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
       mediaRecorderRef.current?.stream.getTracks().forEach((t) => t.stop())
     }
   }, [])
+
+  // Reset cartella quando cambia il tipo
+  useEffect(() => {
+    setFolderId('')
+  }, [docType])
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -186,16 +217,20 @@ export default function UploadPage() {
 
     if (storageError) { setState('error'); setErrorMsg(storageError.message); return }
 
+    const insertData: Record<string, unknown> = {
+      organization_id: orgId,
+      title: title || file.name,
+      source_type: getSourceType(file),
+      file_path: storagePath,
+      status: 'processing',
+      category,
+      document_type: docType,
+    }
+    if (folderId) insertData.folder_id = folderId
+
     const { data: doc, error: docError } = await supabase
       .from('documents')
-      .insert({
-        organization_id: orgId,
-        title: title || file.name,
-        source_type: getSourceType(file),
-        file_path: storagePath,
-        status: 'processing',
-        category,
-      })
+      .insert(insertData)
       .select('id')
       .single()
 
@@ -216,7 +251,7 @@ export default function UploadPage() {
           document_id: doc.id,
           organization_id: orgId,
           file_path: storagePath,
-          source_type: 'audio',
+          source_type: getSourceType(file),
         }),
       })
     } catch {
@@ -228,12 +263,13 @@ export default function UploadPage() {
   }
 
   const canUpload = !!file && !!category && !['uploading', 'processing', 'done'].includes(state)
+  const availableFolders = folders.filter((f) => f.document_type === docType)
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Carica Documento</h1>
-        <p className="text-gray-500 mt-1">Carica file audio per aggiungerli alla knowledge base.</p>
+        <p className="text-gray-500 mt-1">Carica file audio, Word o Excel nella knowledge base.</p>
       </div>
 
       <div className="card p-6 space-y-6">
@@ -369,6 +405,66 @@ export default function UploadPage() {
             </select>
             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           </div>
+        </div>
+
+        {/* Tipo documento */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo documento</label>
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            {([
+              { value: 'knowledge', label: 'Knowledge Base', icon: <BookOpen className="w-4 h-4" /> },
+              { value: 'reference', label: 'Documenti di riferimento', icon: <FileStack className="w-4 h-4" /> },
+            ] as { value: DocType; label: string; icon: React.ReactNode }[]).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setDocType(opt.value)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                  docType === opt.value
+                    ? opt.value === 'knowledge'
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'bg-emerald-50 text-emerald-700'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            {docType === 'knowledge'
+              ? 'Riunioni, procedure, note interne dello studio'
+              : 'CCNL, tabelle contributive, circolari normative'}
+          </p>
+        </div>
+
+        {/* Cartella (opzionale) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Cartella <span className="text-gray-400 font-normal">(opzionale)</span>
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+              <Folder className="w-4 h-4 text-gray-400" />
+            </div>
+            <select
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              className="input appearance-none pl-9 pr-8"
+            >
+              <option value="">— Nessuna cartella</option>
+              {availableFolders.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          </div>
+          {availableFolders.length === 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Nessuna cartella disponibile. Creane una dalla pagina Documenti.
+            </p>
+          )}
         </div>
 
         {state === 'error' && (

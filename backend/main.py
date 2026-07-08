@@ -14,6 +14,8 @@ from openai import OpenAI
 from pydantic import BaseModel
 from supabase import create_client, Client
 
+from labor_cost import calculate_labor_cost
+
 load_dotenv()
 
 app = FastAPI()
@@ -77,6 +79,52 @@ def extract_infographic_data(context: str) -> dict | None:
         return None
 
 
+LABOR_COST_KEYWORDS = [
+    "costo del lavoro", "quanto costa assumere", "costo aziendale",
+    "quanto mi costa assumere", "costo dipendente", "costo azienda",
+]
+
+
+def detect_labor_cost_request(message: str) -> bool:
+    lower = message.lower()
+    return any(kw in lower for kw in LABOR_COST_KEYWORDS)
+
+
+def extract_labor_cost_params(message: str, context: str) -> dict | None:
+    """Estrae dal contesto CCNL/documenti i parametri per il calcolo del
+    costo del lavoro. L'LLM estrae solo i dati (RAL, livello, CCNL); il
+    calcolo vero e proprio è fatto da labor_cost.calculate_labor_cost, non
+    dall'LLM, per evitare errori aritmetici."""
+    try:
+        prompt = (
+            "Dal messaggio dell'utente e dal contesto documentale (CCNL, tabelle) forniti, "
+            "estrai i parametri per calcolare il costo del lavoro. Restituisci SOLO JSON valido "
+            "(no markdown, no spiegazioni) con questo formato esatto:\n"
+            '{"ral": number|null, "ccnl": string|null, "livello": string|null, "mensilita": number|null}\n\n'
+            "Regole:\n"
+            "- ral è la Retribuzione Annua Lorda in euro: se nel contesto trovi la retribuzione "
+            "tabellare mensile del livello indicato, moltiplicala per il numero di mensilità previste\n"
+            "- Se un dato non è ricavabile dal contesto o dal messaggio, usa null\n"
+            "- Non inventare valori non presenti nel testo\n\n"
+            f"Messaggio utente: {message}\n\nContesto documenti:\n{context[:3000]}"
+        )
+        response = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.content[0].text.strip()
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        return json.loads(text)
+    except Exception as exc:
+        print(f"Labor cost extraction failed: {exc}")
+        return None
+
+
 class SetupOrgRequest(BaseModel):
     firm_name: str
 
@@ -105,6 +153,21 @@ class ReEmbedRequest(BaseModel):
     transcript: str
 
 
+class CreateFolderRequest(BaseModel):
+    organization_id: str
+    name: str
+    document_type: str = "knowledge"  # 'knowledge' | 'reference'
+    parent_id: str | None = None
+
+
+class RenameFolderRequest(BaseModel):
+    name: str
+
+
+class MoveDocumentRequest(BaseModel):
+    folder_id: str | None = None
+
+
 def verify_token(authorization: str):
     token = authorization.removeprefix("Bearer ").strip()
     resp = sb.auth.get_user(token)
@@ -120,6 +183,68 @@ def chunk_text(text: str) -> list[str]:
         chunks.append(" ".join(words[start: start + CHUNK_WORDS]))
         start += CHUNK_WORDS - OVERLAP_WORDS
     return [c for c in chunks if c.strip()]
+
+
+@app.get("/folders")
+def list_folders(organization_id: str, authorization: str = Header(...)):
+    verify_token(authorization)
+    result = (
+        sb.table("folders")
+        .select("id, name, document_type, parent_id, created_at")
+        .eq("organization_id", organization_id)
+        .order("document_type")
+        .order("name")
+        .execute()
+    )
+    return {"folders": result.data or []}
+
+
+@app.post("/folders")
+def create_folder(req: CreateFolderRequest, authorization: str = Header(...)):
+    verify_token(authorization)
+    if req.document_type not in ("knowledge", "reference"):
+        raise HTTPException(status_code=400, detail="document_type deve essere 'knowledge' o 'reference'")
+    data = {
+        "organization_id": req.organization_id,
+        "name": req.name,
+        "document_type": req.document_type,
+    }
+    if req.parent_id:
+        data["parent_id"] = req.parent_id
+    result = sb.table("folders").insert(data).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Errore nella creazione della cartella")
+    return {"folder": result.data[0]}
+
+
+@app.patch("/folders/{folder_id}")
+def rename_folder(folder_id: str, req: RenameFolderRequest, authorization: str = Header(...)):
+    verify_token(authorization)
+    result = (
+        sb.table("folders")
+        .update({"name": req.name})
+        .eq("id", folder_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Cartella non trovata")
+    return {"folder": result.data[0]}
+
+
+@app.delete("/folders/{folder_id}")
+def delete_folder(folder_id: str, authorization: str = Header(...)):
+    verify_token(authorization)
+    # Sposta i documenti nella cartella radice prima di eliminare
+    sb.table("documents").update({"folder_id": None}).eq("folder_id", folder_id).execute()
+    sb.table("folders").delete().eq("id", folder_id).execute()
+    return {"status": "ok"}
+
+
+@app.patch("/documents/{document_id}/move")
+def move_document(document_id: str, req: MoveDocumentRequest, authorization: str = Header(...)):
+    verify_token(authorization)
+    sb.table("documents").update({"folder_id": req.folder_id}).eq("id", document_id).execute()
+    return {"status": "ok"}
 
 
 @app.post("/setup-org")
@@ -333,6 +458,7 @@ def chat(req: ChatRequest, authorization: str = Header(...)):
     messages.append({"role": "user", "content": req.message})
 
     is_infographic = detect_infographic_request(req.message)
+    is_labor_cost = detect_labor_cost_request(req.message)
 
     def generate():
         with anthropic_client.messages.stream(
@@ -349,6 +475,14 @@ def chat(req: ChatRequest, authorization: str = Header(...)):
             infographic_data = extract_infographic_data(context)
             if infographic_data:
                 yield f"data: {json.dumps({'infographic': infographic_data})}\n\n"
+
+        if is_labor_cost and context:
+            params = extract_labor_cost_params(req.message, context)
+            if params and params.get("ral"):
+                result = calculate_labor_cost(params)
+                result["ccnl"] = params.get("ccnl")
+                result["livello"] = params.get("livello")
+                yield f"data: {json.dumps({'labor_cost': result})}\n\n"
 
     return StreamingResponse(
         generate(),
